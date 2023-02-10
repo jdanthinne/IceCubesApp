@@ -2,5 +2,6 @@
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="21513" systemVersion="22D49" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="CachedStatus" representedClassName="CachedStatus" syncable="YES" codeGenerationType="class">
         <attribute name="clientId" attributeType="String"/>
+        <attribute name="status" attributeType="Binary"/>
     </entity>
 </model>

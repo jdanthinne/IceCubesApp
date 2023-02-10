@@ -1,4 +1,4 @@
-import Boutique
+import CoreData
 import Models
 import Network
 import SwiftUI
@@ -6,49 +6,69 @@ import SwiftUI
 public actor TimelineCache {
   public static let shared: TimelineCache = .init()
 
-  private func storageFor(_ client: Client) -> SQLiteStorageEngine {
-    SQLiteStorageEngine.default(appendingPath: client.id)
-  }
-
   private let decoder = JSONDecoder()
   private let encoder = JSONEncoder()
 
-  private init() {}
+    private let viewContext: NSManagedObjectContext
 
-  public func cachedPostsCount(for client: Client) async -> Int {
-    await storageFor(client).allKeys().count
+  private init() {
+      viewContext = CoreDataStack().viewContext
   }
 
-  public func clearCache(for client: Client) async {
-    let engine = storageFor(client)
-    do {
-      try await engine.removeAllData()
-    } catch {}
+    private func predicate(for client: Client) -> NSPredicate {
+        NSPredicate(format: "statusId == %@", client.id)
+    }
+
+  public func cachedPostsCount(for client: Client) -> Int {
+      let request = CachedStatus.fetchRequest()
+      request.predicate = predicate(for: client)
+
+      do {
+          return try viewContext.count(for: request)
+      } catch {
+          print("Error counting status cache")
+          return 0
+      }
+  }
+
+  public func clearCache(for client: Client) {
+      let request = CachedStatus.fetchRequest()
+      request.predicate = predicate(for: client)
+      request.includesPropertyValues = false
+
+      do {
+          let statuses = try viewContext.fetch(request)
+          for status in statuses {
+              viewContext.delete(status)
+          }
+          try viewContext.save()
+      } catch {
+          print("Error deleting status cache", error)
+      }
   }
 
   func set(statuses: [Status], client: Client) async {
     guard !statuses.isEmpty else { return }
     let statuses = statuses.prefix(upTo: min(400, statuses.count - 1)).map { $0 }
     do {
-      let engine = storageFor(client)
-      try await engine.removeAllData()
-      let itemKeys = statuses.map { CacheKey($0[keyPath: \.id]) }
-      let dataAndKeys = try zip(itemKeys, statuses)
-        .map { (key: $0, data: try encoder.encode($1)) }
-      try await engine.write(dataAndKeys)
-    } catch {}
+        clearCache(for: client)
+        for status in statuses {
+            let cachedStatus = CachedStatus(context: viewContext)
+            cachedStatus.clientId = client.id
+            cachedStatus.status = try encoder.encode(status)
+        }
+        try viewContext.save()
+    } catch {
+        print("Error saving status cache", error)
+    }
   }
 
-  func getStatuses(for client: Client) async -> [Status]? {
-    let engine = storageFor(client)
-    do {
-      return try await engine
-        .readAllData()
-        .map { try decoder.decode(Status.self, from: $0) }
-        .sorted(by: { $0.createdAt > $1.createdAt })
-    } catch {
-      return nil
-    }
+  func getStatuses(for client: Client) async -> [CachedStatus]? {
+      let request = CachedStatus.fetchRequest()
+      request.predicate = predicate(for: client)
+      request.sortDescriptors = [NSSortDescriptor(keyPath: \CachedStatus.clientId, ascending: true)]
+
+      return try? viewContext.fetch(request)
   }
 
   func setLatestSeenStatuses(ids: [String], for client: Client) {

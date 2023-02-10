@@ -34,7 +34,7 @@ class TimelineViewModel: ObservableObject {
   @Published var tag: Tag?
 
   // Internal source of truth for a timeline.
-  private var statuses: [Status] = []
+  private var statuses: [CachedStatus] = []
   private let cache: TimelineCache = .shared
   private var visibileStatusesIds = Set<String>()
   private var canStreamEvents: Bool = true
@@ -135,7 +135,7 @@ extension TimelineViewModel {
     }
   }
 
-  private func getCachedStatuses() async -> [Status]? {
+  private func getCachedStatuses() async -> [CachedStatus]? {
     if let client {
       return await cache.getStatuses(for: client)
     }
