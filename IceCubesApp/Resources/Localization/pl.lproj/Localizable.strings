@@ -311,6 +311,7 @@
 "notifications.tab.mentions" = "Wzmianki";
 
 // MARK: Package: Timeline
+"timeline.by-account" = "By Account";
 "timeline.federated" = "Strumień globalny";
 "timeline.latest" = "Najnowsze posty";
 "timeline.home" = "Strona główna";

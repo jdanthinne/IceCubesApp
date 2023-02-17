@@ -308,6 +308,7 @@
 "notifications.tab.mentions" = "Vermeldingen";
 
 // MARK: Package: Timeline
+"timeline.by-account" = "By Account";
 "timeline.federated" = "Gefedereerd";
 "timeline.latest" = "Spring naar meest recent";
 "timeline.home" = "Start";

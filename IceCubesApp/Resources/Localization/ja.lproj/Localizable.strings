@@ -314,6 +314,7 @@
 "notifications.tab.mentions" = "返信";
 
 // MARK: Package: Timeline
+"timeline.by-account" = "By Account";
 "timeline.federated" = "連合";
 "timeline.latest" = "最新情報までジャンプ";
 "timeline.home" = "ホーム";

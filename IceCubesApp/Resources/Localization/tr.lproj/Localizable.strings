@@ -310,6 +310,7 @@
 "notifications.tab.mentions" = "Bahsetmeler";
 
 // MARK: Package: Timeline
+"timeline.by-account" = "By Account";
 "timeline.federated" = "Birleştirilmiş";
 "timeline.latest" = "Jump to Latest";
 "timeline.home" = "Ana Ekran";

@@ -315,6 +315,7 @@
 "notifications.tab.mentions" = "Aipamenak";
 
 // MARK: Package: Timeline
+"timeline.by-account" = "By Account";
 "timeline.federated" = "Federatua";
 "timeline.latest" = "Egin salto berrienera";
 "timeline.home" = "Hasiera";

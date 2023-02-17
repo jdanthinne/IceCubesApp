@@ -316,6 +316,7 @@
 "notifications.tab.mentions" = "언급";
 
 // MARK: Package: Timeline
+"timeline.by-account" = "By Account";
 "timeline.federated" = "연합";
 "timeline.latest" = "최신 타임라인 다시 불러오기";
 "timeline.home" = "홈";

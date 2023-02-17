@@ -314,6 +314,7 @@
 "notifications.tab.mentions" = "Menções";
 
 // MARK: Package: Timeline
+"timeline.by-account" = "By Account";
 "timeline.federated" = "Linha global";
 "timeline.latest" = "Jump to Latest";
 "timeline.home" = "Início";

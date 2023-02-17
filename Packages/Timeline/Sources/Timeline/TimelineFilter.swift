@@ -30,7 +30,7 @@ public enum RemoteTimelineFilter: String, CaseIterable, Hashable, Equatable {
 }
 
 public enum TimelineFilter: Hashable, Equatable {
-  case home, local, federated, trending
+  case home, byAccount, local, federated, trending
   case hashtag(tag: String, accountId: String?)
   case list(list: Models.List)
   case remoteLocal(server: String, filter: RemoteTimelineFilter)
@@ -44,7 +44,7 @@ public enum TimelineFilter: Hashable, Equatable {
     if !client.isAuth {
       return [.local, .federated, .trending]
     }
-    return [.home, .local, .federated, .trending]
+      return [.home, .byAccount, .local, .federated, .trending]
   }
 
   public var title: String {
@@ -59,6 +59,8 @@ public enum TimelineFilter: Hashable, Equatable {
       return "Trending"
     case .home:
       return "Home"
+    case .byAccount:
+        return "By Account"
     case let .hashtag(tag, _):
       return "#\(tag)"
     case let .list(list):
@@ -80,6 +82,8 @@ public enum TimelineFilter: Hashable, Equatable {
       return "timeline.trending"
     case .home:
       return "timeline.home"
+    case .byAccount:
+        return "timeline.by-account"
     case let .hashtag(tag, _):
       return "#\(tag)"
     case let .list(list):
@@ -101,6 +105,8 @@ public enum TimelineFilter: Hashable, Equatable {
       return "chart.line.uptrend.xyaxis"
     case .home:
       return "house"
+    case .byAccount:
+        return "person"
     case .list:
       return "list.bullet"
     case .remoteLocal:
@@ -109,6 +115,15 @@ public enum TimelineFilter: Hashable, Equatable {
       return nil
     }
   }
+
+    public var mustBePersisted: Bool {
+        switch self {
+        case .home, .byAccount, .federated, .local:
+            return true
+        default:
+            return false
+        }
+    }
 
   public func endpoint(sinceId: String?, maxId: String?, minId: String?, offset: Int?) -> Endpoint {
     switch self {
@@ -124,7 +139,7 @@ public enum TimelineFilter: Hashable, Equatable {
         return Trends.statuses(offset: offset)
       }
     case .latest: return Timelines.home(sinceId: nil, maxId: nil, minId: nil)
-    case .home: return Timelines.home(sinceId: sinceId, maxId: maxId, minId: minId)
+    case .home, .byAccount: return Timelines.home(sinceId: sinceId, maxId: maxId, minId: minId)
     case .trending: return Trends.statuses(offset: offset)
     case let .list(list): return Timelines.list(listId: list.id, sinceId: sinceId, maxId: maxId, minId: minId)
     case let .hashtag(tag, accountId):
@@ -147,6 +162,7 @@ extension TimelineFilter: Codable {
     case list
     case remoteLocal
     case latest
+    case byAccount
   }
 
   public init(from decoder: Decoder) throws {
@@ -155,6 +171,8 @@ extension TimelineFilter: Codable {
     switch key {
     case .home:
       self = .home
+    case .byAccount:
+        self = .byAccount
     case .local:
       self = .local
     case .federated:
@@ -200,6 +218,8 @@ extension TimelineFilter: Codable {
     switch self {
     case .home:
       try container.encode(CodingKeys.home.rawValue, forKey: .home)
+    case .byAccount:
+        try container.encode(CodingKeys.byAccount.rawValue, forKey: .byAccount)
     case .local:
       try container.encode(CodingKeys.local.rawValue, forKey: .local)
     case .federated:

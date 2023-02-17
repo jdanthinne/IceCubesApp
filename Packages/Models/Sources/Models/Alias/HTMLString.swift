@@ -58,6 +58,8 @@ public struct HTMLString: Codable, Equatable, Hashable {
           _ = text.removeLast()
         }
         asRawText = text
+          .replacing("&nbsp;", with: " ")
+          .replacing("&amp;", with: "&")
 
         if asMarkdown.hasPrefix("\n") {
           _ = asMarkdown.removeFirst()

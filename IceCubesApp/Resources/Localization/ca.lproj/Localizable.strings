@@ -313,6 +313,7 @@
 "notifications.tab.mentions" = "Mencions";
 
 // MARK: Package: Timeline
+"timeline.by-account" = "By Account";
 "timeline.federated" = "Federada";
 "timeline.latest" = "Jump to Latest";
 "timeline.home" = "Inici";

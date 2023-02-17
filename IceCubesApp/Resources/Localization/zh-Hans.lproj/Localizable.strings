@@ -315,6 +315,7 @@
 "notifications.tab.mentions" = "提及";
 
 // MARK: Package: Timeline
+"timeline.by-account" = "By Account";
 "timeline.federated" = "跨站";
 "timeline.latest" = "跳转到最新";
 "timeline.home" = "主页";

@@ -14,6 +14,7 @@ public struct TimelineView: View {
 
   @Environment(\.scenePhase) private var scenePhase
   @EnvironmentObject private var theme: Theme
+  @EnvironmentObject private var preferences: UserPreferences
   @EnvironmentObject private var account: CurrentAccount
   @EnvironmentObject private var watcher: StreamWatcher
   @EnvironmentObject private var client: Client
@@ -43,9 +44,9 @@ public struct TimelineView: View {
           }
           switch viewModel.timeline {
           case .remoteLocal:
-            StatusesListView(fetcher: viewModel, isRemote: true)
+            statusesListView(fetcher: viewModel, isRemote: true)
           default:
-            StatusesListView(fetcher: viewModel)
+            statusesListView(fetcher: viewModel)
           }
         }
         .id(client.id)
@@ -62,6 +63,8 @@ public struct TimelineView: View {
         }
       }
       .onChange(of: viewModel.scrollToIndex) { index in
+          guard timeline != .byAccount else { return }
+
         if let collectionView,
            let index,
            let rows = collectionView.dataSource?.collectionView(collectionView, numberOfItemsInSection: 0),
@@ -149,6 +152,15 @@ public struct TimelineView: View {
         break
       }
     })
+  }
+
+  @ViewBuilder
+  private func statusesListView<Fetcher: StatusesFetcher>(fetcher: Fetcher, isRemote: Bool = false) -> some View {
+      if timeline == .byAccount {
+      StatusesByAccountsListView(fetcher: fetcher, isRemote: isRemote)
+    } else {
+      StatusesListView(fetcher: fetcher, isRemote: isRemote)
+    }
   }
 
   @ViewBuilder

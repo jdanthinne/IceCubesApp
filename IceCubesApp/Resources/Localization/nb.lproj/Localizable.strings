@@ -314,6 +314,7 @@
 "notifications.tab.mentions" = "Omtaler";
 
 // MARK: Package: Timeline
+"timeline.by-account" = "By Account";
 "timeline.federated" = "Federert";
 "timeline.latest" = "Jump to Latest";
 "timeline.home" = "Hjem";

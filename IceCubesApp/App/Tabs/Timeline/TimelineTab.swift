@@ -85,7 +85,7 @@ struct TimelineTab: View {
       routerPath.path = []
     }
     .onChange(of: timeline) { timeline in
-      if(timeline == .home || timeline == .federated || timeline == .local) {
+      if timeline.mustBePersisted {
         lastTimelineFilter = timeline
       }
     }
