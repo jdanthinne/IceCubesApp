@@ -12,6 +12,7 @@ public class StatusRowViewModel: ObservableObject {
   let isFocused: Bool
   let isRemote: Bool
   let showActions: Bool
+  let onAccountShown: ((_ accountId: String) -> Void)?
 
   @Published var favoritesCount: Int
   @Published var isFavorited: Bool
@@ -58,13 +59,15 @@ public class StatusRowViewModel: ObservableObject {
               isCompact: Bool = false,
               isFocused: Bool = false,
               isRemote: Bool = false,
-              showActions: Bool = true)
+              showActions: Bool = true,
+              onAccountShown: ((_ accountId: String) -> Void)? = nil)
   {
     self.status = status
     self.isCompact = isCompact
     self.isFocused = isFocused
     self.isRemote = isRemote
     self.showActions = showActions
+    self.onAccountShown = onAccountShown
     if let reblog = status.reblog {
       isFavorited = reblog.favourited == true
       isReblogged = reblog.reblogged == true

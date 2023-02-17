@@ -156,8 +156,15 @@ public struct TimelineView: View {
 
   @ViewBuilder
   private func statusesListView<Fetcher: StatusesFetcher>(fetcher: Fetcher, isRemote: Bool = false) -> some View {
-      if timeline == .byAccount {
-      StatusesByAccountsListView(fetcher: fetcher, isRemote: isRemote)
+    if timeline == .byAccount {
+      StatusesByAccountsListView(
+        fetcher: fetcher,
+        hasPendingStatuses: {  accountId in
+            viewModel.pendingStatusesObserver.hasPendingStatutes(accountId: accountId)
+        },
+        onAccountShown: { accountId in
+            viewModel.pendingStatusesObserver.removeStatuses(withAccountId: accountId)
+      })
     } else {
       StatusesListView(fetcher: fetcher, isRemote: isRemote)
     }

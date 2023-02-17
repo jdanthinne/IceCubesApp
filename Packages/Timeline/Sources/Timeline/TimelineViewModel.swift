@@ -98,7 +98,7 @@ class TimelineViewModel: ObservableObject {
        pendingStatusesEnabled,
        !statuses.contains(where: { $0.id == event.status.id })
     {
-      pendingStatusesObserver.pendingStatuses.insert(event.status.id, at: 0)
+      pendingStatusesObserver.pendingStatuses.insert(.init(status: event.status), at: 0)
       var newStatus = event.status
       if let accountId {
         if newStatus.mentions.first(where: { $0.id == accountId }) != nil {
@@ -263,7 +263,8 @@ extension TimelineViewModel: StatusesFetcher {
       }
     } else {
       // Append new statuses in the timeline indicator.
-      pendingStatusesObserver.pendingStatuses.insert(contentsOf: newStatuses.map { $0.id }, at: 0)
+        let newPendingStatuses = newStatuses.map(PendingStatus.init(status:))
+        pendingStatusesObserver.pendingStatuses.insert(contentsOf: newPendingStatuses, at: 0)
 
       // High chance the user is scrolled to the top.
       // We need to update the statuses state, and then scroll to the previous top most status.

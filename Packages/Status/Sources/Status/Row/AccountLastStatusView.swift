@@ -35,9 +35,7 @@ public struct AccountLastStatusView: View {
                 AvatarView(url: viewModel.status.account.avatar, size: .status)
                 statusView
             }
-            .onTapGesture {
-                routerPath.navigate(to: .accountDetail(id: viewModel.status.account.id, statusesOnly: true))
-            }
+            .onTapGesture(perform: navigateToAccount)
             .onAppear {
                 if reasons.isEmpty {
                     viewModel.client = client
@@ -49,12 +47,17 @@ public struct AccountLastStatusView: View {
             .listRowBackground(viewModel.highlightRowColor)
             .accessibilityElement(children: viewModel.isFocused ? .contain : .combine)
             .accessibilityAction {
-                routerPath.navigate(to: .accountDetail(id: viewModel.status.account.id, statusesOnly: true))
+                navigateToAccount()
             }
             .alignmentGuide(.listRowSeparatorLeading) { _ in
                 -100
             }
         }
+    }
+
+    private func navigateToAccount() {
+        routerPath.navigate(to: .accountDetail(id: viewModel.status.account.id, statusesOnly: true))
+        viewModel.onAccountShown?(viewModel.status.account.id)
     }
 
     @ViewBuilder

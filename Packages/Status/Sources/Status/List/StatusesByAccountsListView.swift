@@ -8,13 +8,15 @@ public struct StatusesByAccountsListView<Fetcher>: View where Fetcher: StatusesF
   @EnvironmentObject private var theme: Theme
 
   @ObservedObject private var fetcher: Fetcher
-  private let isRemote: Bool
-  private let isEmbdedInList: Bool
+  private let hasPendingStatuses: (_ accountId: String) -> Bool
+  private let onAccountShown: (_ accountId: String) -> Void
 
-  public init(fetcher: Fetcher, isRemote: Bool = false, isEmbdedInList: Bool = true) {
+  public init(fetcher: Fetcher,
+              hasPendingStatuses: @escaping (_ accountId: String) -> Bool,
+              onAccountShown: @escaping (_ accountId: String) -> Void) {
     self.fetcher = fetcher
-    self.isRemote = isRemote
-    self.isEmbdedInList = isEmbdedInList
+    self.hasPendingStatuses = hasPendingStatuses
+    self.onAccountShown = onAccountShown
   }
 
   public var body: some View {
@@ -22,17 +24,12 @@ public struct StatusesByAccountsListView<Fetcher>: View where Fetcher: StatusesF
     case .loading:
       ForEach(Status.placeholders()) { status in
           AccountLastStatusView(viewModel: .init(status: status, isCompact: false))
-          .padding(.horizontal, isEmbdedInList ? 0 : .layoutPadding)
           .redacted(reason: .placeholder)
           .listRowBackground(theme.primaryBackgroundColor)
           .listRowInsets(.init(top: 12,
                                leading: .layoutPadding,
                                bottom: 12,
                                trailing: .layoutPadding))
-        if !isEmbdedInList {
-          Divider()
-            .padding(.vertical, .dividerPadding)
-        }
       }
     case .error:
       ErrorView(title: "status.error.title",
@@ -47,26 +44,29 @@ public struct StatusesByAccountsListView<Fetcher>: View where Fetcher: StatusesF
 
     case let .display(statuses, nextPageState):
       ForEach(statuses, id: \.viewId) { status in
-        let viewModel = StatusRowViewModel(status: status, isCompact: false, isRemote: isRemote)
+        let viewModel = StatusRowViewModel(status: status, isCompact: false, onAccountShown: onAccountShown)
         if viewModel.filter?.filter.filterAction != .hide {
             AccountLastStatusView(viewModel: viewModel)
-            .padding(.horizontal, isEmbdedInList ? 0 : .layoutPadding)
             .id(status.id)
             .listRowBackground(theme.primaryBackgroundColor)
             .listRowInsets(.init(top: 12,
                                  leading: .layoutPadding,
                                  bottom: 12,
                                  trailing: .layoutPadding))
+            .overlay(alignment: .leading) {
+                if hasPendingStatuses(status.account.id) {
+                    Circle()
+                        .fill(theme.tintColor)
+                        .frame(width: 10, height: 10)
+                        .offset(x: -14)
+                }
+            }
             .onAppear {
               fetcher.statusDidAppear(status: status)
             }
             .onDisappear {
               fetcher.statusDidDisappear(status: status)
             }
-          if !isEmbdedInList {
-            Divider()
-              .padding(.vertical, .dividerPadding)
-          }
         }
       }
       switch nextPageState {

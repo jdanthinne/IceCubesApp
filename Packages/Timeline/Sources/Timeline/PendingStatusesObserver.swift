@@ -10,17 +10,27 @@ class PendingStatusesObserver: ObservableObject {
   var disableUpdate: Bool = false
   var scrollToIndex: ((Int) -> Void)?
 
-  var pendingStatuses: [String] = [] {
+  var pendingStatuses: [PendingStatus] = [] {
     didSet {
       pendingStatusesCount = pendingStatuses.count
     }
   }
 
   func removeStatus(status: Status) {
-    if !disableUpdate, let index = pendingStatuses.firstIndex(of: status.id) {
+    if !disableUpdate, let index = pendingStatuses.map(\.statusId).firstIndex(of: status.id) {
       pendingStatuses.removeSubrange(index ... (pendingStatuses.count - 1))
       HapticManager.shared.fireHaptic(of: .timeline)
     }
+  }
+
+  func removeStatuses(withAccountId accountId: String) {
+    if !disableUpdate {
+      pendingStatuses.removeAll { $0.accountId == accountId }
+    }
+  }
+
+  func hasPendingStatutes(accountId: String) -> Bool {
+    pendingStatuses.first(where: { $0.accountId == accountId }) != nil
   }
 
   init() {}
