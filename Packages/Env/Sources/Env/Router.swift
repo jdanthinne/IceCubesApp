@@ -4,7 +4,7 @@ import Network
 import SwiftUI
 
 public enum RouterDestinations: Hashable {
-  case accountDetail(id: String)
+  case accountDetail(id: String, statusesOnly: Bool = false)
   case accountDetailWithAccount(account: Account)
   case accountSettingsWithAccount(account: Account, appAccount: AppAccount)
   case statusDetail(id: String)

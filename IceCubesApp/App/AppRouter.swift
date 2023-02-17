@@ -13,8 +13,8 @@ extension View {
   func withAppRouter() -> some View {
     navigationDestination(for: RouterDestinations.self) { destination in
       switch destination {
-      case let .accountDetail(id):
-        AccountDetailView(accountId: id)
+      case let .accountDetail(id, statusesOnly):
+        AccountDetailView(accountId: id, statusesOnly: statusesOnly)
       case let .accountDetailWithAccount(account):
         AccountDetailView(account: account)
       case let .accountSettingsWithAccount(account, appAccount):

@@ -28,14 +28,18 @@ public struct AccountDetailView: View {
   @State private var isEditingAccount: Bool = false
   @State private var isEditingFilters: Bool = false
 
+  private let statusesOnly: Bool
+
   /// When coming from a URL like a mention tap in a status.
-  public init(accountId: String) {
+    public init(accountId: String, statusesOnly: Bool = false) {
     _viewModel = StateObject(wrappedValue: .init(accountId: accountId))
+    self.statusesOnly = statusesOnly
   }
 
   /// When the account is already fetched by the parent caller.
-  public init(account: Account) {
+  public init(account: Account, statusesOnly: Bool = false) {
     _viewModel = StateObject(wrappedValue: .init(account: account))
+    self.statusesOnly = statusesOnly
   }
     
   public var body: some View {
@@ -44,35 +48,40 @@ public struct AccountDetailView: View {
         self.scrollOffset = offset
       } content: {
         LazyVStack(alignment: .leading) {
-          makeHeaderView(proxy: proxy)
-          familiarFollowers
-            .offset(y: -36)
-          featuredTagsView
-            .offset(y: -36)
-          Group {
-            Picker("", selection: $viewModel.selectedTab) {
-              ForEach(isCurrentUser ? AccountDetailViewModel.Tab.currentAccountTabs : AccountDetailViewModel.Tab.accountTabs,
-                      id: \.self) { tab in
-                Image(systemName: tab.iconName)
-                  .tag(tab)
-              }
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal, .layoutPadding)
-            .offset(y: -20)
-          }
-          .id("status")
-
-          switch viewModel.tabState {
-          case .statuses:
-            if viewModel.selectedTab == .statuses {
-              pinnedPostsView
-            }
+          if statusesOnly {
             StatusesListView(fetcher: viewModel, isEmbdedInList: false)
-          case .followedTags:
-            tagsListView
-          case .lists:
-            listsListView
+              .padding(.top, 16)
+          } else {
+            makeHeaderView(proxy: proxy)
+            familiarFollowers
+              .offset(y: -36)
+            featuredTagsView
+              .offset(y: -36)
+            Group {
+              Picker("", selection: $viewModel.selectedTab) {
+                ForEach(isCurrentUser ? AccountDetailViewModel.Tab.currentAccountTabs : AccountDetailViewModel.Tab.accountTabs,
+                        id: \.self) { tab in
+                  Image(systemName: tab.iconName)
+                    .tag(tab)
+                }
+              }
+              .pickerStyle(.segmented)
+              .padding(.horizontal, .layoutPadding)
+              .offset(y: -20)
+            }
+            .id("status")
+
+            switch viewModel.tabState {
+            case .statuses:
+              if viewModel.selectedTab == .statuses {
+                pinnedPostsView
+              }
+              StatusesListView(fetcher: viewModel, isEmbdedInList: false)
+            case .followedTags:
+              tagsListView
+            case .lists:
+              listsListView
+            }
           }
         }
       }
@@ -125,7 +134,7 @@ public struct AccountDetailView: View {
     .sheet(isPresented: $isEditingFilters, content: {
       FiltersListView()
     })
-    .edgesIgnoringSafeArea(.top)
+    .edgesIgnoringSafeArea(statusesOnly ? [] : .top)
     .navigationBarTitleDisplayMode(.inline)
     .toolbar {
       toolbarContent
@@ -346,212 +355,224 @@ public struct AccountDetailView: View {
     }
   }
 
-  @ToolbarContentBuilder
-  private var toolbarContent: some ToolbarContent {
-    ToolbarItem(placement: .principal) {
-      if scrollOffset < -170 {
-        switch viewModel.accountState {
-        case let .data(account):
-          EmojiTextApp(.init(stringValue: account.safeDisplayName), emojis: account.emojis)
-            .font(.scaledHeadline)
-        default:
-          EmptyView()
-        }
-      }
-    }
-
-    ToolbarItem(placement: .navigationBarTrailing) {
-      Menu {
-        if let account = viewModel.account {
-          Section(account.acct) {
-            if !viewModel.isCurrentUser {
-              Button {
-                routerPath.presentedSheet = .mentionStatusEditor(account: account,
-                                                                 visibility: preferences.postVisibility)
-              } label: {
-                Label("account.action.mention", systemImage: "at")
-              }
-              Button {
-                routerPath.presentedSheet = .mentionStatusEditor(account: account, visibility: .direct)
-              } label: {
-                Label("account.action.message", systemImage: "tray.full")
-              }
-
-              Divider()
-
-              if viewModel.relationship?.blocking == true {
-                Button {
-                  Task {
-                    do {
-                      viewModel.relationship = try await client.post(endpoint: Accounts.unblock(id: account.id))
-                    } catch {
-                      print("Error while unblocking: \(error.localizedDescription)")
-                    }
-                  }
-                } label: {
-                  Label("account.action.unblock", systemImage: "person.crop.circle.badge.exclamationmark")
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        if statusesOnly {
+            ToolbarItem(placement: .principal) {
+                switch viewModel.accountState {
+                case let .data(account):
+                    EmojiTextApp(.init(stringValue: account.safeDisplayName), emojis: account.emojis)
+                        .font(.scaledHeadline)
+                default:
+                    EmptyView()
                 }
-              } else {
-                Button {
-                  Task {
-                    do {
-                      viewModel.relationship = try await client.post(endpoint: Accounts.block(id: account.id))
-                    } catch {
-                      print("Error while blocking: \(error.localizedDescription)")
-                    }
-                  }
-                } label: {
-                  Label("account.action.block", systemImage: "person.crop.circle.badge.xmark")
-                }
-              }
-              
-              if viewModel.relationship?.muting == true {
-                Button {
-                  Task {
-                    do {
-                      viewModel.relationship = try await client.post(endpoint: Accounts.unmute(id: account.id))
-                    } catch {
-                      print("Error while unmuting: \(error.localizedDescription)")
-                    }
-                  }
-                } label: {
-                  Label("account.action.unmute", systemImage: "speaker")
-                }
-              } else {
-                Menu {
-                  ForEach(MutingDurations.allCases, id: \.rawValue) { duration in
-                    Button (duration.description) {
-                      Task {
-                        do {
-                          viewModel.relationship = try await client.post(endpoint: Accounts.mute(id: account.id, json: MuteData(duration: duration.rawValue)))
-                        } catch {
-                          print("Error while muting: \(error.localizedDescription)")
-                        }
-                      }
-                    }
-                  }
-                } label: {
-                  Label("account.action.mute", systemImage: "speaker.slash")
-                }
-              }
-
-              if let relationship = viewModel.relationship,
-                 relationship.following
-              {
-                if relationship.notifying {
-                  Button {
-                    Task {
-                      do {
-                        viewModel.relationship = try await client.post(endpoint: Accounts.follow(id: account.id,
-                                                                                                 notify: false,
-                                                                                                 reblogs: relationship.showingReblogs))
-                      } catch {
-                        print("Error while disabling notifications: \(error.localizedDescription)")
-                      }
-                    }
-                  } label: {
-                    Label("account.action.notify-disable", systemImage: "bell.fill")
-                  }
-                } else {
-                  Button {
-                    Task {
-                      do {
-                        viewModel.relationship = try await client.post(endpoint: Accounts.follow(id: account.id,
-                                                                                                 notify: true,
-                                                                                                 reblogs: relationship.showingReblogs))
-                      } catch {
-                        print("Error while enabling notifications: \(error.localizedDescription)")
-                      }
-                    }
-                  } label: {
-                    Label("account.action.notify-enable", systemImage: "bell")
-                  }
-                }
-                if relationship.showingReblogs {
-                  Button {
-                    Task {
-                      do {
-                        viewModel.relationship = try await client.post(endpoint: Accounts.follow(id: account.id,
-                                                                                                 notify: relationship.notifying,
-                                                                                                 reblogs: false))
-                      } catch {
-                        print("Error while disabling reboosts: \(error.localizedDescription)")
-                      }
-                    }
-                  } label: {
-                    Label("account.action.reboosts-hide", systemImage: "arrow.left.arrow.right.circle.fill")
-                  }
-                } else {
-                  Button {
-                    Task {
-                      do {
-                        viewModel.relationship = try await client.post(endpoint: Accounts.follow(id: account.id,
-                                                                                                 notify: relationship.notifying,
-                                                                                                 reblogs: true))
-                      } catch {
-                        print("Error while enabling reboosts: \(error.localizedDescription)")
-                      }
-                    }
-                  } label: {
-                    Label("account.action.reboosts-show", systemImage: "arrow.left.arrow.right.circle")
-                  }
-                }
-              }
-
-              Divider()
             }
-
-            if viewModel.relationship?.following == true {
-              Button {
-                routerPath.presentedSheet = .listAddAccount(account: account)
-              } label: {
-                Label("account.action.add-remove-list", systemImage: "list.bullet")
-              }
-            }
-
-            if let url = account.url {
-              ShareLink(item: url) {
-                Label("account.action.share", systemImage: "square.and.arrow.up")
-              }
-              Button { UIApplication.shared.open(url) } label: {
-                Label("status.action.view-in-browser", systemImage: "safari")
-              }
-            }
-
-            Divider()
-
-            if isCurrentUser {
-              Button {
-                isEditingAccount = true
-              } label: {
-                Label("account.action.edit-info", systemImage: "pencil")
-              }
-
-              if curretnInstance.isFiltersSupported {
-                Button {
-                  isEditingFilters = true
-                } label: {
-                  Label("account.action.edit-filters", systemImage: "line.3.horizontal.decrease.circle")
-                }
-              }
-
-              Button {
-                routerPath.presentedSheet = .accountPushNotficationsSettings
-              } label: {
-                Label("settings.push.navigation-title", systemImage: "bell")
-              }
-            }
-          }
-        }
-      } label: {
-        if scrollOffset < -5 {
-          Image(systemName: "ellipsis.circle")
         } else {
-          Image(systemName: "ellipsis.circle.fill")
+            ToolbarItem(placement: .principal) {
+                if scrollOffset < -170 {
+                    switch viewModel.accountState {
+                    case let .data(account):
+                        EmojiTextApp(.init(stringValue: account.safeDisplayName), emojis: account.emojis)
+                            .font(.scaledHeadline)
+                    default:
+                        EmptyView()
+                    }
+                }
+            }
+
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Menu {
+                    if let account = viewModel.account {
+                        Section(account.acct) {
+                            if !viewModel.isCurrentUser {
+                                Button {
+                                    routerPath.presentedSheet = .mentionStatusEditor(account: account,
+                                                                                     visibility: preferences.postVisibility)
+                                } label: {
+                                    Label("account.action.mention", systemImage: "at")
+                                }
+                                Button {
+                                    routerPath.presentedSheet = .mentionStatusEditor(account: account, visibility: .direct)
+                                } label: {
+                                    Label("account.action.message", systemImage: "tray.full")
+                                }
+
+                                Divider()
+
+                                if viewModel.relationship?.blocking == true {
+                                    Button {
+                                        Task {
+                                            do {
+                                                viewModel.relationship = try await client.post(endpoint: Accounts.unblock(id: account.id))
+                                            } catch {
+                                                print("Error while unblocking: \(error.localizedDescription)")
+                                            }
+                                        }
+                                    } label: {
+                                        Label("account.action.unblock", systemImage: "person.crop.circle.badge.exclamationmark")
+                                    }
+                                } else {
+                                    Button {
+                                        Task {
+                                            do {
+                                                viewModel.relationship = try await client.post(endpoint: Accounts.block(id: account.id))
+                                            } catch {
+                                                print("Error while blocking: \(error.localizedDescription)")
+                                            }
+                                        }
+                                    } label: {
+                                        Label("account.action.block", systemImage: "person.crop.circle.badge.xmark")
+                                    }
+                                }
+
+                                if viewModel.relationship?.muting == true {
+                                    Button {
+                                        Task {
+                                            do {
+                                                viewModel.relationship = try await client.post(endpoint: Accounts.unmute(id: account.id))
+                                            } catch {
+                                                print("Error while unmuting: \(error.localizedDescription)")
+                                            }
+                                        }
+                                    } label: {
+                                        Label("account.action.unmute", systemImage: "speaker")
+                                    }
+                                } else {
+                                    Menu {
+                                        ForEach(MutingDurations.allCases, id: \.rawValue) { duration in
+                                            Button (duration.description) {
+                                                Task {
+                                                    do {
+                                                        viewModel.relationship = try await client.post(endpoint: Accounts.mute(id: account.id, json: MuteData(duration: duration.rawValue)))
+                                                    } catch {
+                                                        print("Error while muting: \(error.localizedDescription)")
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    } label: {
+                                        Label("account.action.mute", systemImage: "speaker.slash")
+                                    }
+                                }
+
+                                if let relationship = viewModel.relationship,
+                                   relationship.following
+                                {
+                                    if relationship.notifying {
+                                        Button {
+                                            Task {
+                                                do {
+                                                    viewModel.relationship = try await client.post(endpoint: Accounts.follow(id: account.id,
+                                                                                                                             notify: false,
+                                                                                                                             reblogs: relationship.showingReblogs))
+                                                } catch {
+                                                    print("Error while disabling notifications: \(error.localizedDescription)")
+                                                }
+                                            }
+                                        } label: {
+                                            Label("account.action.notify-disable", systemImage: "bell.fill")
+                                        }
+                                    } else {
+                                        Button {
+                                            Task {
+                                                do {
+                                                    viewModel.relationship = try await client.post(endpoint: Accounts.follow(id: account.id,
+                                                                                                                             notify: true,
+                                                                                                                             reblogs: relationship.showingReblogs))
+                                                } catch {
+                                                    print("Error while enabling notifications: \(error.localizedDescription)")
+                                                }
+                                            }
+                                        } label: {
+                                            Label("account.action.notify-enable", systemImage: "bell")
+                                        }
+                                    }
+                                    if relationship.showingReblogs {
+                                        Button {
+                                            Task {
+                                                do {
+                                                    viewModel.relationship = try await client.post(endpoint: Accounts.follow(id: account.id,
+                                                                                                                             notify: relationship.notifying,
+                                                                                                                             reblogs: false))
+                                                } catch {
+                                                    print("Error while disabling reboosts: \(error.localizedDescription)")
+                                                }
+                                            }
+                                        } label: {
+                                            Label("account.action.reboosts-hide", systemImage: "arrow.left.arrow.right.circle.fill")
+                                        }
+                                    } else {
+                                        Button {
+                                            Task {
+                                                do {
+                                                    viewModel.relationship = try await client.post(endpoint: Accounts.follow(id: account.id,
+                                                                                                                             notify: relationship.notifying,
+                                                                                                                             reblogs: true))
+                                                } catch {
+                                                    print("Error while enabling reboosts: \(error.localizedDescription)")
+                                                }
+                                            }
+                                        } label: {
+                                            Label("account.action.reboosts-show", systemImage: "arrow.left.arrow.right.circle")
+                                        }
+                                    }
+                                }
+
+                                Divider()
+                            }
+
+                            if viewModel.relationship?.following == true {
+                                Button {
+                                    routerPath.presentedSheet = .listAddAccount(account: account)
+                                } label: {
+                                    Label("account.action.add-remove-list", systemImage: "list.bullet")
+                                }
+                            }
+
+                            if let url = account.url {
+                                ShareLink(item: url) {
+                                    Label("account.action.share", systemImage: "square.and.arrow.up")
+                                }
+                                Button { UIApplication.shared.open(url) } label: {
+                                    Label("status.action.view-in-browser", systemImage: "safari")
+                                }
+                            }
+
+                            Divider()
+
+                            if isCurrentUser {
+                                Button {
+                                    isEditingAccount = true
+                                } label: {
+                                    Label("account.action.edit-info", systemImage: "pencil")
+                                }
+
+                                if curretnInstance.isFiltersSupported {
+                                    Button {
+                                        isEditingFilters = true
+                                    } label: {
+                                        Label("account.action.edit-filters", systemImage: "line.3.horizontal.decrease.circle")
+                                    }
+                                }
+
+                                Button {
+                                    routerPath.presentedSheet = .accountPushNotficationsSettings
+                                } label: {
+                                    Label("settings.push.navigation-title", systemImage: "bell")
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    if scrollOffset < -5 {
+                        Image(systemName: "ellipsis.circle")
+                    } else {
+                        Image(systemName: "ellipsis.circle.fill")
+                    }
+                }
+            }
         }
-      }
     }
-  }
 }
 
 struct AccountDetailView_Previews: PreviewProvider {

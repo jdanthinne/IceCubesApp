@@ -36,7 +36,7 @@ public struct AccountLastStatusView: View {
                 statusView
             }
             .onTapGesture {
-                viewModel.navigateToDetail(routerPath: routerPath)
+                routerPath.navigate(to: .accountDetail(id: viewModel.status.account.id, statusesOnly: true))
             }
             .onAppear {
                 if reasons.isEmpty {
@@ -49,27 +49,8 @@ public struct AccountLastStatusView: View {
             .listRowBackground(viewModel.highlightRowColor)
             .accessibilityElement(children: viewModel.isFocused ? .contain : .combine)
             .accessibilityAction {
-                viewModel.navigateToDetail(routerPath: routerPath)
+                routerPath.navigate(to: .accountDetail(id: viewModel.status.account.id, statusesOnly: true))
             }
-            .background {
-                Color.clear
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        viewModel.navigateToDetail(routerPath: routerPath)
-                    }
-            }
-            .alert(isPresented: $viewModel.showDeleteAlert, content: {
-                Alert(
-                    title: Text("status.action.delete.confirm.title"),
-                    message: Text("status.action.delete.confirm.message"),
-                    primaryButton: .destructive(
-                        Text("status.action.delete")) {
-                            Task {
-                                await viewModel.delete()
-                            }
-                        },
-                    secondaryButton: .cancel())
-            })
             .alignmentGuide(.listRowSeparatorLeading) { _ in
                 -100
             }

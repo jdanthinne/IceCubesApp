@@ -139,7 +139,7 @@ public struct Status: AnyStatus, Codable, Identifiable, Equatable, Hashable, Sta
 
 
   public static func placeholders() -> [Status] {
-    [.placeholder(), .placeholder(), .placeholder(), .placeholder(), .placeholder()]
+    [.placeholder(), .placeholder(), .placeholder(), .placeholder(), .placeholder(), .placeholder(), .placeholder(), .placeholder(), .placeholder(), .placeholder()]
   }
 }
 
